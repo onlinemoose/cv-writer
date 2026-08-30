@@ -138,8 +138,8 @@ def test_region_defaults_to_uk_and_is_overridable(stub_llm):
 def test_default_expert_guidance_is_used_when_none_is_supplied(stub_llm):
     run(Input(cv=CV, job_posting=JOB))
     prompt = stub_llm["prompt"]
-    assert "## How to build this CV" in prompt
-    assert "reverse-chronological" in prompt  # from DEFAULT_EXPERT_GUIDANCE
+    assert "## Method" in prompt
+    assert "Reverse-chronological" in prompt  # from DEFAULT_EXPERT_GUIDANCE
 
 
 def test_house_style_is_optional_and_precedes_the_method(stub_llm):
@@ -152,24 +152,31 @@ def test_house_style_is_optional_and_precedes_the_method(stub_llm):
     prompt = stub_llm["prompt"]
     assert "## House style" in prompt
     assert "No em dashes." in prompt
-    assert prompt.index("## House style") < prompt.index("## How to build this CV")
-    # The system prompt states house style's place in the precedence order.
-    assert "House style" in stub_llm["system"]
+    assert prompt.index("## House style") < prompt.index("## Method")
+    # The standards state the house style's place in the precedence order.
+    assert "house style" in stub_llm["system"]
 
 
-def test_system_prompt_carries_the_fixed_rules(stub_llm):
+def test_system_block_is_assembled_from_the_three_immutable_layers(stub_llm):
     run(Input(cv=CV, job_posting=JOB))
     system = stub_llm["system"]
-    assert "Ground every line" in system
-    assert "identity block" in system
-    assert "never remove the title/employer/dates line" in system
-    assert "do not evaluate" in system  # no feedback / critique in the output
-    assert "United Kingdom conventions" in system  # region default
+    # system.md — mindset, not rules
+    assert "You write for that reader." in system
+    # standards.md — the invariants and the precedence map
+    assert "**Grounding.**" in system
+    assert "**Identity block preserved.**" in system
+    assert "**Every role kept.**" in system
+    assert "**No evaluation of the candidate.**" in system
+    assert "## Precedence" in system
+    assert "United Kingdom" in system  # region default lives in precedence
+    # output_contract.md — the reply shape, with the sentinel resolved
+    assert "Return exactly this and nothing else:" in system
+    assert "This format is fixed." in system
 
 
 def test_prompts_are_loaded_from_package_data(stub_llm):
     # The prompt text lives in cv_writer/prompts/*.md, read at import.
-    # The {{SENTINEL}} placeholder in system.md must be resolved.
+    # The {{SENTINEL}} placeholder in output_contract.md must be resolved.
     run(Input(cv=CV, job_posting=JOB))
     system = stub_llm["system"]
     assert "{{SENTINEL}}" not in system
@@ -177,7 +184,7 @@ def test_prompts_are_loaded_from_package_data(stub_llm):
     assert _core.DEFAULT_EXPERT_GUIDANCE.strip() in stub_llm["prompt"]
 
 
-def test_expert_guidance_replaces_the_default_but_not_the_contract(stub_llm):
+def test_expert_guidance_replaces_the_method_but_not_the_immutable_layers(stub_llm):
     run(
         Input(
             cv=CV,
@@ -187,9 +194,10 @@ def test_expert_guidance_replaces_the_default_but_not_the_contract(stub_llm):
     )
     prompt = stub_llm["prompt"]
     assert "List every role as a single line, no bullets." in prompt
-    assert "reverse-chronological" not in prompt  # the default is gone
-    # the immutable guarantees still hold — they live in the system prompt
-    assert "Never invent or inflate" in stub_llm["system"]
+    assert "Reverse-chronological" not in prompt  # the default method is gone
+    # the standards and the output contract still hold — they are in the system block
+    assert "**Grounding.**" in stub_llm["system"]
+    assert "**No inflation.**" in stub_llm["system"]
     assert _core.SENTINEL in stub_llm["system"]
 
 

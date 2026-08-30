@@ -107,6 +107,18 @@ uv run lint-imports        # fails if the module imports an orchestration framew
 uv run pytest              # fails if run() breaks the contract
 ```
 
+## Changing the prompts
+
+The prompt text is four Markdown files in `cv_writer/prompts/`, split by
+layer: `system.md` (who the model is), `standards.md` (invariants +
+precedence), `output_contract.md` (the reply shape), `expert_guidance.md`
+(the method — a caller can replace it). **Whenever any of those files is
+added or edited — by you or by a person — run the change protocol in
+`docs/PROMPT-LAYERS.md`** before treating the change as done: it checks
+each new line sits in the right layer, nothing is duplicated across
+layers, and precedence still resolves. `tests/test_prompt_layers.py`
+covers only the mechanics; the loyalty check is the protocol.
+
 ## Releasing a new version
 
 A consumer (an orchestrator, or the dashboard) installs this repo as a

@@ -4,6 +4,43 @@ Dated entries, newest first. What's done, what's deferred, decisions
 made. Read this before assuming anything about the module's current
 state.
 
+## 2026-08-30 — Split the prompt into four layers (v0.2.0)
+
+- The single `system.md` mixed identity, rules, and format, and
+  `expert_guidance.md` restated rules it should only point at. Split by
+  *kind of statement*, one Markdown file per layer in `cv_writer/prompts/`:
+  - `system.md` — **who the model is**: role, expertise, mindset,
+    orientation. Descriptive only; no rules, no steps, nothing checkable.
+  - `standards.md` — **the invariants** the output is held to (grounding,
+    no inflation, identity block preserved, every role kept, gaps
+    recorded, no evaluation) written as testable assertions, plus the
+    **precedence map** (conflicts resolved by domain, with the
+    house-style-vs-method tie-break going to the method).
+  - `output_contract.md` — **the reply shape** only. Carries the
+    `{{SENTINEL}}` placeholder (marker string still owned by `_core.py`).
+  - `expert_guidance.md` — **the method** (section order, bullet craft,
+    situational calls). Still replaced wholesale by
+    `Input.expert_guidance`.
+- `_core.py`: `SYSTEM_PROMPT` is now `system.md + standards.md +
+  output_contract.md` joined and sentinel-resolved (the cached block);
+  `DEFAULT_EXPERT_GUIDANCE` unchanged in role. Prompt section header
+  `## How to build this CV` → `## Method`.
+- `docs/PROMPT-LAYERS.md` — new. The scope of each file (definition,
+  discriminator, "must not contain", example) and the **change protocol**
+  the assistant runs on every edit to `cv_writer/prompts/*.md`: mood
+  check against per-file red flags, duplication check, precedence
+  integrity, mechanics (`test_prompt_layers.py`), verdict. `CLAUDE.md`
+  and `README.md` point at it.
+- `tests/test_prompt_layers.py` — new. Mechanics only: every layer file
+  loads and opens with a heading; `{{SENTINEL}}` lives only in
+  `output_contract.md` and resolves; the method stays out of the cached
+  system block. `tests/test_run.py` assertions updated to the new
+  structure. `uv run pytest` (36) and `uv run lint-imports` pass.
+- **Minor bump, not major.** The prompt is restructured but the contract
+  in `docs/CONTRACT.md` is unchanged — same inputs, same outputs, same
+  guarantees, just sourced from four files instead of two. 0.1.0 → 0.2.0.
+- The same four-layer split is to be mirrored in `cover-letter-writer`.
+
 ## 2026-08-30 — First working implementation (v0.1.0)
 
 - `docs/CONTRACT.md` agreed first: given a plain-text `cv` and

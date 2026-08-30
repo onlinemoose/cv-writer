@@ -138,35 +138,53 @@ reaches into the consumer.
 cv_writer/        the module: run(), Input, Output, Emphasis, Feedback, Cost
   _contract.py    the input/output shapes
   _core.py        one LLM call, prompt assembly, reply parsing
-  prompts/        editable prompt text, read at import
-    system.md         immutable identity + rules + output format
-    expert_guidance.md  the default method (operator-overridable)
+  prompts/        editable prompt text, read at import — one file per layer
+    system.md           who the model is: role, expertise, mindset
+    standards.md        the output invariants + the precedence map
+    output_contract.md  the exact reply shape (carries {{SENTINEL}})
+    expert_guidance.md  the method — a caller can replace it wholesale
 cli.py            run it from a terminal (flags or interactive)
 docs/
-  CONTRACT.md     the input/output spec
-  USAGE.md        ready-to-run commands
-  PROGRESS.md     dated change log, newest first
+  CONTRACT.md      the input/output spec
+  PROMPT-LAYERS.md what each prompt file may hold + the change protocol
+  USAGE.md         ready-to-run commands
+  PROGRESS.md      dated change log, newest first
 examples/         demo inputs (job-posting.md, cv.md, emphasis.md) and house-style.md
-tests/            test_run.py (contract), test_cli.py (the bullet parser)
+tests/            test_run.py (contract), test_cli.py (parser),
+                  test_prompt_layers.py (prompt-file mechanics)
 ```
 
 ## Tuning the prompts
 
-The prompt text is in `cv_writer/prompts/` as plain Markdown, read once
-at import into `_core.SYSTEM_PROMPT` and `_core.DEFAULT_EXPERT_GUIDANCE`:
+The prompt text is four Markdown files in `cv_writer/prompts/`, split by
+**what kind of statement** each holds. `docs/PROMPT-LAYERS.md` is the full
+spec; in short:
 
-- `system.md` — identity, grounding rules, output format. Never
-  overridable by a caller. Keep the `{{SENTINEL}}` marker in the
-  output-format section exactly once; `_core.py` fills it with the value
-  `_parse` splits on.
-- `expert_guidance.md` — the default method. `Input.expert_guidance`
-  replaces it wholesale at call time, so edits here only change the
-  default.
+- `system.md` — who the model is: role, expertise, mindset, orientation.
+  No rules, no steps, nothing checkable.
+- `standards.md` — the invariants the output is held to (grounding,
+  identity block, every role kept, gaps recorded, no evaluation) and the
+  precedence map. A caller cannot loosen these.
+- `output_contract.md` — the exact reply shape. Keep the `{{SENTINEL}}`
+  marker exactly once; `_core.py` fills it with the value `_parse` splits
+  on.
+- `expert_guidance.md` — the method (section order, bullet craft,
+  situational calls). `Input.expert_guidance` replaces it wholesale at
+  call time, so edits here only change the default.
 
-Edit a file, run `uv run pytest`, then release as a **patch** (prompt
-text only, contract unchanged). There is no default house style: that is
-cross-cutting config the orchestrator owns and passes in as `house_style`
-(see `docs/CONTRACT.md`).
+`_core.py` builds the cached system block from the first three;
+`expert_guidance.md` is sent per call.
+
+**When you edit any of these, run the change protocol in
+`docs/PROMPT-LAYERS.md`** — it checks each new line sits in the right
+layer, nothing is duplicated, and precedence still resolves.
+`tests/test_prompt_layers.py` covers the mechanics (`uv run pytest`).
+Prompt-only change, contract unchanged → release as a **patch**; a change
+to `standards.md` or `output_contract.md` that alters what a caller can
+rely on is a **contract change** (update `docs/CONTRACT.md`, bump major).
+
+There is no default house style: that is cross-cutting config the
+orchestrator owns and passes in as `house_style` (see `docs/CONTRACT.md`).
 
 ## Releasing a change
 

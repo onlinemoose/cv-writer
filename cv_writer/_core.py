@@ -38,20 +38,27 @@ _USD_PER_CACHE_WRITE_TOKEN = 2.50 / 1_000_000
 SENTINEL = "===WHAT-I-TARGETED==="
 
 # The prompt text lives in editable Markdown alongside this module, in
-# prompts/. It ships in the wheel as package data and is read once here,
-# at import, into the same constants the rest of the module already used.
+# prompts/ — one file per layer. It ships in the wheel as package data and
+# is read once here, at import. The scope of each file, and the protocol
+# for changing one, is in docs/PROMPT-LAYERS.md.
 #
-# - system.md      — identity and the guarantees the module makes. Never
-#                    overridable by a caller. Carries a {{SENTINEL}}
-#                    placeholder in its output-format section, filled in
-#                    below with the value _parse depends on.
-# - expert_guidance.md — the default method for *how* to build the CV.
-#                    The operator (not the candidate) replaces it wholesale
-#                    via Input.expert_guidance; it never overrides system.md.
+# Cached system block (immutable, identical on every call):
+#   system.md          — who the model is: role, expertise, mindset,
+#                        orientation. No rules, no steps, nothing checkable.
+#   standards.md       — the invariants the output is held to, and the
+#                        precedence map. A caller cannot loosen these.
+#   output_contract.md — the exact reply shape. Carries a {{SENTINEL}}
+#                        placeholder, filled below with the value _parse
+#                        splits on.
+#
+# Per call (not cached):
+#   expert_guidance.md — the default method. Input.expert_guidance replaces
+#                        it wholesale; the three files above still hold.
 _PROMPTS = resources.files(__package__) / "prompts"
-SYSTEM_PROMPT = (_PROMPTS / "system.md").read_text(encoding="utf-8").replace(
-    "{{SENTINEL}}", SENTINEL
-)
+_SYSTEM_FILES = ("system.md", "standards.md", "output_contract.md")
+SYSTEM_PROMPT = "\n\n".join(
+    (_PROMPTS / name).read_text(encoding="utf-8").strip() for name in _SYSTEM_FILES
+).replace("{{SENTINEL}}", SENTINEL)
 DEFAULT_EXPERT_GUIDANCE = (_PROMPTS / "expert_guidance.md").read_text(encoding="utf-8")
 
 
@@ -76,7 +83,7 @@ def _render_prompt(data: Input) -> str:
         parts.append(f"## House style\n\n{house_style}")
 
     guidance = (data.expert_guidance or "").strip() or DEFAULT_EXPERT_GUIDANCE
-    parts.append(f"## How to build this CV\n\n{guidance}")
+    parts.append(f"## Method\n\n{guidance}")
 
     region = (data.region or "").strip()
     if region:

@@ -1,5 +1,5 @@
 """Internal implementation. Nothing here is public — callers only ever
-touch capability.run().
+touch cv_writer.run().
 
 Organise this however suits the job: one function or many, one LLM call
 or several, a self-critique pass, whatever. The only contract is:

@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from capability import Input, run
+from cv_writer import Input, run
 
 
 def main() -> None:

@@ -3,7 +3,7 @@
 Grow this as the contract grows: one test per promise the module makes.
 """
 
-from capability import Input, Output, run
+from cv_writer import Input, Output, run
 
 
 def test_run_returns_the_output_type():

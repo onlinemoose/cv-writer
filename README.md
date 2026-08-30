@@ -1,136 +1,183 @@
-# capability-module-template
+# CV Writer
 
-A starting point for building **one discrete capability** as a standalone
-Python project — something with clear inputs and a clear output that is
-useful on its own, and can be plugged into larger workflows later without
-the capability itself changing.
+A standalone capability module. Given a candidate's current CV and a
+specific job posting, it rewrites and reorders the CV to target that
+role, plus a short note on what it targeted. It works on its own and can
+be composed into larger workflows later without changing.
 
-Examples: "write a cover letter", "assess fit for a role", "summarise a
-job posting". Each one is its own repository created from this template.
+> Part of a larger system. The rules every capability module follows are
+> in `CLAUDE.md`. The input/output spec is `docs/CONTRACT.md`. The
+> ready-to-run commands are in `docs/USAGE.md`.
 
-The rules every capability must follow are in **`CLAUDE.md`**, which
-Claude Code reads automatically inside any repository created from this
-template — so the constraints travel with the code and you don't have to
-restate them.
+## What it does
 
----
+You hand it the candidate's current CV and one job posting, both as plain
+text. It reads the posting the way a recruiter would — past the wording
+to the few things that decide the shortlist — and returns a CV rewritten
+to put the candidate's evidence for those things where it gets read
+first.
 
-## One-time setup on this machine
+Concretely, one call will:
 
-You need two things installed:
+- **Reorder** the experience section so the most relevant role, and the
+  most relevant bullets within it, come first.
+- **Reweight** roles — four to six bullets on a directly relevant recent
+  role, one or two on an old or unrelated one — while keeping every
+  role's title / employer / dates line, so no role silently disappears.
+- **Rewrite** each bullet to foreground the part this posting cares
+  about, using the figures the source gives and inventing none.
+- **Rebuild the summary and skills** around the posting's priorities,
+  using the posting's own terms where the source supports the same skill
+  under another name.
+- **Follow a region's CV conventions** (length norm, expected sections,
+  whether a photo / DOB / nationality belong). Defaults to UK.
+- **Honour explicit steering** — points to lead with (optionally anchored
+  to a span of the posting), a tone, a target length, house style — and
+  a previous draft plus feedback for a revision pass.
 
-- **VS Code** with the Claude Code extension (you already have this).
-- **`uv`** — the tool that runs the Python. Check by opening a terminal
-  (in VS Code: **Terminal → New Terminal**) and typing `uv --version`.
-  If that errors, install it: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+It returns two things:
 
----
+- `tailored_cv`: the finished CV, in Markdown. The candidate's identity
+  block (name, contact details) is carried through verbatim.
+- `tailoring_note`: a factual record of which posting requirements the CV
+  now addresses and where, what was cut or de-emphasised, and any
+  requirement the source doesn't evidence.
 
-## Making a new capability
+### What it will not do
 
-### 1. Make a new repo from this template
+Every claim traces back to the source — tailoring is selection,
+ordering, and reframing, never invention; gaps against the posting are
+recorded in the note, not filled. It never fetches anything: every input
+arrives as an argument, so PDF/DOCX extraction and company research
+happen upstream. It gives no feedback, critique, coaching, or assessment
+of the candidate. It does not render to PDF/DOCX, simulate an ATS score,
+write the cover letter, judge whether to apply, or translate the CV.
 
-**On GitHub (preferred).** Go to
-<https://github.com/onlinemoose/capability-module-template>, click
-**Use this template → Create a new repository**, name it for the
-capability (e.g. `cover-letter-writer`), and create it. The new repo
-starts with its own fresh history — no leftover link to the template.
-Then clone it to your Mac.
+## Inputs
 
-*(One-time: the "Use this template" button only appears if the
-template repo's **Settings → Template repository** box is ticked.)*
+Required: `cv` (text) and `job_posting` (text).
 
-Rename the inner `capability/` folder to your capability's own name
-(snake_case, matching the repo — e.g. `cover_letter_writer/`), and update
-the spots that reference it: `pyproject.toml` (`name`, `packages`),
-`.importlinter`, and the `from capability import` lines in `cli.py` and
-`tests/`. The `capability-module` skill (or Claude) does this for you.
-The name has to be unique because a dashboard or orchestrator installs
-several capabilities at once and imports each by name.
+Optional (full spec in `docs/CONTRACT.md`):
 
-### 2. Open the new project in VS Code
+- The candidate's: `background_documents`, `tone`, `target_length` (free
+  text, e.g. "2 pages"), `region` (CV conventions to follow; defaults to
+  UK), `emphasis` (points, each optionally anchored to a span of the
+  posting), `previous_draft` + `previous_feedback` (for a revision pass),
+  `job_title`, `job_company`.
+- The operator's: `house_style` (cross-cutting spelling, punctuation and
+  phrasing rules, the same file you would give every text tool),
+  `expert_guidance` (replaces the built-in method for how to build the
+  CV).
 
-**File → Open Folder**, pick your new `cover-letter-writer` folder.
+## Run it
 
-### 3. Write the contract — `docs/CONTRACT.md`
-
-This is the part that's yours, and it's product work, not code. Open
-`docs/CONTRACT.md` and fill in every section:
-
-- **Responsibility** — the one job, in a sentence.
-- **Inputs (required / optional)** — what it needs to be handed.
-- **Output** — what it gives back.
-- **Out of scope** — what it deliberately does *not* do.
-
-The test: if you can't describe the inputs and output without naming
-another capability, the boundary is wrong. Sort that out before moving
-on.
-
-### 4. Have Claude Code build it
-
-Start Claude Code in VS Code and say something like:
-
-> This is a new capability module. Read `CLAUDE.md` and
-> `docs/CONTRACT.md`, then fill in the `_contract.py` and implement the
-> `_core.py` in the capability package to match the contract.
-
-Claude follows the rules in `CLAUDE.md` automatically. Review what it
-produces against your contract.
-
-### 5. Check it works on its own
-
-In the VS Code terminal:
+Needs `uv` and an Anthropic API key in `.env` (`cp .env.example .env`,
+then paste the key).
 
 ```
-uv run python cli.py --input examples/sample.txt   # try it end to end
-uv run pytest                                       # does it honour the contract?
-uv run lint-imports                                 # did anything forbidden sneak in?
+# bundled demo
+uv run python cli.py \
+    --job-posting examples/job-posting.md \
+    --cv examples/cv.md \
+    --emphasis-file examples/emphasis.md \
+    --house-style examples/house-style.md > cv.md
+
+# answer prompts one at a time
+uv run python cli.py -i
 ```
 
-Replace `examples/sample.txt` with a real input to feel whether the
-output is actually good.
+The CV goes to stdout; the tailoring note and a one-line cost estimate go
+to stderr, so `> cv.md` saves just the CV. `docs/USAGE.md` covers the
+rest (your own files, stdin, revising a draft). `uv run python cli.py -h`
+lists every flag.
 
-### 6. Log it — `docs/PROGRESS.md`
+## Use it from Python
 
-Add a dated line saying what the module now does. Future-you (and Claude)
-read this first.
+`run(Input(...))` is the whole public surface.
 
----
+```python
+from cv_writer import Input, run
 
-## When is it done?
+result = run(Input(
+    cv=open("cv.md").read(),
+    job_posting=open("posting.md").read(),
+    house_style=open("house-style.md").read(),   # optional
+))
+print(result.tailored_cv)
+print(result.tailoring_note)
+```
 
-When step 5's three commands pass **and** a real input produces output
-you'd actually use. At that point the capability stands on its own. Wiring
-several capabilities together into a single experience is a separate,
-later job — and an easy one, because each piece has a clean contract.
+Also public: `Emphasis` and `Feedback`, the shapes for the `emphasis` and
+`previous_feedback` lists, and `Cost`, returned on `result.cost`.
 
----
-
-## Shipping changes later
-
-Once an orchestrator uses this capability, it does so by pinning a git
-tag, so every change worth picking up is a tagged release:
-
-1. Make the change; `uv run pytest` and `uv run lint-imports` pass.
-2. Bump `version` in `pyproject.toml` — **patch** for a prompt tweak or
-   fix, **minor** for a new optional input, **major** if `CONTRACT.md`
-   changed in a way that breaks existing callers.
-3. Add a `docs/PROGRESS.md` entry, commit, then `git tag vX.Y.Z` and
-   push the tag.
-
-The orchestrator picks it up when *it* chooses to move its pin — nothing
-here reaches into it. Full detail is in `CLAUDE.md` → "Releasing a new
-version".
-
----
-
-## Optional: make the skill available everywhere
-
-`.claude/skills/capability-module/` is a Claude skill that walks through
-this process and can review an existing module against the rules. It
-works inside repositories created from this template already. To use it
-in *any* project:
+## Checks
 
 ```
-cp -R .claude/skills/capability-module ~/.claude/skills/
+uv run pytest          # proves run() honours docs/CONTRACT.md
+uv run lint-imports    # fails if an orchestration framework sneaks in
 ```
+
+## How it composes
+
+A consumer (an orchestrator, or the dashboard) imports `cv_writer.run`
+and calls it, pinning this repo as a git tag
+(`cv-writer @ git+https://.../cv-writer.git@v0.1.0`). Nothing here
+reaches into the consumer.
+
+- `house_style` is meant to be one file the orchestrator owns and passes
+  to every text module, so voice stays consistent across the system.
+- Company context (mission, strategy, culture) comes in as a
+  `background_document`. A sibling `company-researcher` module is
+  scaffolded to produce that brief; this module does no research itself.
+- A planned OCR/extraction module will hand structured text to `cv`;
+  today `cv` is plain text (see `docs/CONTRACT.md` open questions).
+
+## Layout
+
+```
+cv_writer/        the module: run(), Input, Output, Emphasis, Feedback, Cost
+  _contract.py    the input/output shapes
+  _core.py        one LLM call, prompt assembly, reply parsing
+  prompts/        editable prompt text, read at import
+    system.md         immutable identity + rules + output format
+    expert_guidance.md  the default method (operator-overridable)
+cli.py            run it from a terminal (flags or interactive)
+docs/
+  CONTRACT.md     the input/output spec
+  USAGE.md        ready-to-run commands
+  PROGRESS.md     dated change log, newest first
+examples/         demo inputs (job-posting.md, cv.md, emphasis.md) and house-style.md
+tests/            test_run.py (contract), test_cli.py (the bullet parser)
+```
+
+## Tuning the prompts
+
+The prompt text is in `cv_writer/prompts/` as plain Markdown, read once
+at import into `_core.SYSTEM_PROMPT` and `_core.DEFAULT_EXPERT_GUIDANCE`:
+
+- `system.md` — identity, grounding rules, output format. Never
+  overridable by a caller. Keep the `{{SENTINEL}}` marker in the
+  output-format section exactly once; `_core.py` fills it with the value
+  `_parse` splits on.
+- `expert_guidance.md` — the default method. `Input.expert_guidance`
+  replaces it wholesale at call time, so edits here only change the
+  default.
+
+Edit a file, run `uv run pytest`, then release as a **patch** (prompt
+text only, contract unchanged). There is no default house style: that is
+cross-cutting config the orchestrator owns and passes in as `house_style`
+(see `docs/CONTRACT.md`).
+
+## Releasing a change
+
+Consumers pin a git tag, so every change worth picking up is a tagged
+release:
+
+1. `uv run pytest` and `uv run lint-imports` pass.
+2. Bump `version` in `pyproject.toml`: patch for a prompt tweak, minor
+   for a new optional input, major if `docs/CONTRACT.md` changed in a way
+   that breaks callers.
+3. Add a `docs/PROGRESS.md` entry, commit, `git tag vX.Y.Z`, push the
+   tag.
+
+Full detail in `CLAUDE.md` under "Releasing a new version".

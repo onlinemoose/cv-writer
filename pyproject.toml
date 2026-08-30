@@ -1,7 +1,7 @@
 [project]
 name = "cv-writer"
 version = "0.1.0"
-description = "One discrete capability with a clear contract."
+description = "Tailor a candidate's CV to a specific job posting."
 requires-python = ">=3.12"
 dependencies = [
     "anthropic>=1.0",
@@ -11,6 +11,7 @@ dependencies = [
 dev = [
     "pytest>=8",
     "import-linter>=2",
+    "python-dotenv>=1.2.3",
 ]
 
 [build-system]

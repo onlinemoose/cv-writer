@@ -74,24 +74,41 @@ supplied by whoever runs the module.
   - `quote` (str | None, default `None`) — the exact span of the
     previous CV the comment is about. Omitted for general feedback like
     "make it shorter" or "less jargon".
-- `house_style` (str | None, default `None`) — cross-cutting writing
-  conventions (spelling, punctuation, phrasing, date format) that apply
-  to all of the operator's generated text, not just this CV.
-  Operator-supplied, typically the same string handed to every text
-  module. Applied throughout; it outranks the method (`expert_guidance`
-  / the default), but not the grounding rules or the output format.
-  Without it the module uses its own judgement on style.
-- `expert_guidance` (str | None, default `None`) — the method for *how*
-  to build the CV: section order, what to lead with, how to write an
-  achievement bullet, how to weigh evidence, how to handle gaps.
+- `house_style` (str | None, default `None`) — the **style**: how the
+  prose reads — register, spelling and language locale (British vs
+  American English), date format in prose, words to avoid. Cross-cutting:
+  the same string an operator hands to every text module. When set it
+  replaces the module's bundled default style
+  (`cv_writer/prompts/style.md`) wholesale. It governs voice and
+  language, not how the CV is built or how long it is (`expert_guidance`)
+  and not the country's CV-format conventions (`region`). An explicit
+  `tone` overrides it for register. Without it the module uses its
+  bundled default style.
+- `expert_guidance` (str | None, default `None`) — the **method**: how to
+  build the CV — section order, evidence selection, achievement-bullet
+  craft, gap handling, and how long and how detailed the CV is.
   Operator-supplied (you, a colleague, or an orchestrator that has
   assembled CV-writing expertise) — never the candidate's. When set it
-  replaces the module's built-in guidance wholesale. It does not
-  override the grounding rules, `house_style`, or the output format, and
-  an explicit `tone` / `target_length` / `region` still wins. Without it
-  the module uses its default, bundled at
-  `cv_writer/prompts/expert_guidance.md` (the immutable identity and
-  rules live alongside it in `system.md`).
+  replaces the module's built-in method wholesale. It governs structure
+  and length, not voice or language (`house_style`); it never overrides
+  the standards or the output format; an explicit `tone` /
+  `target_length` / `region` still wins. Without it the module uses its
+  default, bundled at `cv_writer/prompts/expert_guidance.md`.
+
+### Precedence
+
+The prompt is layered; each layer owns a disjoint domain. Full detail,
+and the protocol for changing a layer, is in `docs/PROMPT-LAYERS.md`.
+
+- **Truth, grounding, output shape** — the standards and the output
+  format. Nothing overrides them.
+- **Structure and length** — `expert_guidance` (or its bundled default).
+  An explicit `target_length` / `region` still wins.
+- **Voice and language** — `house_style` (or its bundled default). An
+  explicit `tone` still wins for register.
+- **CV-format conventions** (page norm, photo/DOB/nationality, "CV" vs
+  "résumé") — `region`, else UK. Separate from the style's language
+  locale.
 
 ## Output
 

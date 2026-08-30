@@ -1,7 +1,9 @@
 # Method
 
-How to build the CV. A caller can replace this whole file with their own
-method; when they do, the standards and the output format still hold.
+How to build the CV: its structure, what goes in it, and how long it is.
+A caller can replace this whole file with their own method; when they do,
+the standards, the output format, and the style still hold. This file
+does not set voice, spelling, or word choice — that is the style.
 
 ## Read the posting first
 
@@ -38,10 +40,11 @@ experience section evidences it.
 
 ## Professional experience
 
-Reverse-chronological. Each entry is one line of job title, employer,
-location, and dates, then achievement lines. Give the roles and lines
-that serve this posting the most room — four to six lines for a directly
-relevant recent role, one or two for an old or unrelated one.
+Reverse-chronological. Each entry opens with one line carrying the job
+title, employer, location, and a month-year date range (March 2021 –
+present), then achievement lines. Give the roles and lines that serve
+this posting the most room — four to six lines for a directly relevant
+recent role, one or two for an old or unrelated one.
 
 Write each line as an achievement: a strong past-tense verb, what was
 done, and the outcome. Where the sources give a figure for scope, scale,
@@ -63,10 +66,11 @@ drop detail such as modules or grades by relevance and region norm.
 
 Aim for the region's norm — up to two pages for a UK CV, one page for a
 US resume — unless a target length says otherwise. Reach it by adjusting
-the detail under roles, cutting the least relevant first.
+the detail under roles, cutting the least relevant first. A CV is concise
+throughout, whatever register the style file itself is written in.
 
-## Voice
+## How much to rewrite
 
 Keep the candidate's own wording where it already reads well; tighten
-where it is verbose. The finished CV should sound like the candidate,
-edited.
+where it is verbose. The result should read as the candidate edited it,
+not as a different writer took over.

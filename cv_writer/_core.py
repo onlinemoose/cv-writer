@@ -51,14 +51,18 @@ SENTINEL = "===WHAT-I-TARGETED==="
 #                        placeholder, filled below with the value _parse
 #                        splits on.
 #
-# Per call (not cached):
-#   expert_guidance.md — the default method. Input.expert_guidance replaces
-#                        it wholesale; the three files above still hold.
+# Per call (not cached, because a caller can replace either):
+#   style.md           — the default voice and language conventions.
+#                        Input.house_style replaces it wholesale.
+#   expert_guidance.md — the default method. Input.expert_guidance
+#                        replaces it wholesale.
+# The three files above still hold whichever of these is in play.
 _PROMPTS = resources.files(__package__) / "prompts"
 _SYSTEM_FILES = ("system.md", "standards.md", "output_contract.md")
 SYSTEM_PROMPT = "\n\n".join(
     (_PROMPTS / name).read_text(encoding="utf-8").strip() for name in _SYSTEM_FILES
 ).replace("{{SENTINEL}}", SENTINEL)
+DEFAULT_STYLE = (_PROMPTS / "style.md").read_text(encoding="utf-8")
 DEFAULT_EXPERT_GUIDANCE = (_PROMPTS / "expert_guidance.md").read_text(encoding="utf-8")
 
 
@@ -78,9 +82,8 @@ def _validate(data: Input) -> None:
 def _render_prompt(data: Input) -> str:
     parts: list[str] = []
 
-    house_style = (data.house_style or "").strip()
-    if house_style:
-        parts.append(f"## House style\n\n{house_style}")
+    style = (data.house_style or "").strip() or DEFAULT_STYLE
+    parts.append(f"## Style\n\n{style}")
 
     guidance = (data.expert_guidance or "").strip() or DEFAULT_EXPERT_GUIDANCE
     parts.append(f"## Method\n\n{guidance}")

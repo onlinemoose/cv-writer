@@ -114,24 +114,27 @@ class Input:
 
     # --- operator configuration (not the candidate's input) ---
     house_style: str | None = None
-    """Cross-cutting writing conventions — spelling, punctuation,
-    phrasing, date format — that apply to all of the operator's generated
-    text, not just this CV. Operator-supplied, typically the same string
-    handed to every text module. Applied throughout; it outranks the
-    method (`expert_guidance` / the default), but not the grounding rules
-    or the output format. Without it the module uses its own judgement on
-    style."""
+    """The style — how the prose reads: register, spelling and language
+    locale (e.g. British vs American English), date format in prose, and
+    words to avoid. Cross-cutting: the same string an operator hands to
+    every text module. When set it replaces the module's bundled default
+    style (`cv_writer/prompts/style.md`) wholesale. It governs voice and
+    language, not how the CV is built or how long it is (that is
+    `expert_guidance`), and not the country's CV-format conventions (that
+    is `region`). An explicit `tone` overrides it for register. Without
+    it the module uses its bundled default style."""
 
     expert_guidance: str | None = None
-    """The method for *how* to build the CV — section order, what to lead
-    with, how to write an achievement bullet, how to weigh evidence, how
-    to handle gaps. Supplied by whoever operates the module (you, a
-    colleague, or an orchestrator that has assembled CV-writing
+    """The method — how to build the CV: section order, evidence
+    selection, achievement-bullet craft, gap handling, and how long and
+    how detailed the CV is. Supplied by whoever operates the module (you,
+    a colleague, or an orchestrator that has assembled CV-writing
     expertise), not by the candidate. When set it replaces the module's
-    built-in guidance wholesale. It does NOT override the grounding
-    rules, `house_style`, or the output format, and an explicit `tone` /
+    built-in method wholesale. It governs structure and length, not voice
+    or language conventions (those are `house_style`); it never overrides
+    the standards or the output format; an explicit `tone` /
     `target_length` / `region` still wins. Without it the module uses its
-    default."""
+    bundled default (`cv_writer/prompts/expert_guidance.md`)."""
 
 
 @dataclass

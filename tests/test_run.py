@@ -142,19 +142,28 @@ def test_default_expert_guidance_is_used_when_none_is_supplied(stub_llm):
     assert "Reverse-chronological" in prompt  # from DEFAULT_EXPERT_GUIDANCE
 
 
-def test_house_style_is_optional_and_precedes_the_method(stub_llm):
-    # Absent by default.
+def test_style_defaults_and_is_replaced_wholesale_by_house_style(stub_llm):
+    # No house_style supplied -> the bundled style.md is used.
     run(Input(cv=CV, job_posting=JOB))
-    assert "## House style" not in stub_llm["prompt"]
-
-    # Supplied: rendered, and ahead of the method so its precedence reads.
-    run(Input(cv=CV, job_posting=JOB, house_style="Write in British English. No em dashes."))
     prompt = stub_llm["prompt"]
-    assert "## House style" in prompt
-    assert "No em dashes." in prompt
-    assert prompt.index("## House style") < prompt.index("## Method")
-    # The standards state the house style's place in the precedence order.
-    assert "house style" in stub_llm["system"]
+    assert "## Style" in prompt
+    assert _core.DEFAULT_STYLE.strip() in prompt
+
+    # house_style supplied -> it replaces the bundled default wholesale.
+    run(Input(cv=CV, job_posting=JOB, house_style="Write in American English. No lists."))
+    prompt = stub_llm["prompt"]
+    assert "## Style" in prompt
+    assert "No lists." in prompt
+    assert _core.DEFAULT_STYLE.strip() not in prompt
+    # Style sits ahead of the method in the assembled prompt.
+    assert prompt.index("## Style") < prompt.index("## Method")
+
+
+def test_style_and_method_are_disjoint_layers_in_the_precedence_map(stub_llm):
+    run(Input(cv=CV, job_posting=JOB))
+    system = stub_llm["system"]
+    assert "The style has no say in them." in system  # structure/length -> method
+    assert "The method has no say in them." in system  # voice/spelling -> style
 
 
 def test_system_block_is_assembled_from_the_three_immutable_layers(stub_llm):

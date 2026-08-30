@@ -33,21 +33,24 @@ output and its inputs.
 
 ## Precedence
 
-Resolve conflicts by domain, not by a single ranking.
+Each layer governs its own domain, and the domains do not overlap, so
+most conflicts do not arise. Where a question could fall to more than
+one, this is the order.
 
-- **Truth and grounding.** Standards 1 to 6 decide it. Nothing overrides
-  them: not the method, not the house style, not a candidate parameter.
-- **Document structure** — the sections, their order, and what each entry
-  contains. The method decides it. The house style does not govern
-  structure.
-- **Spelling, punctuation, phrasing, date format, and register.** The
-  house style decides it when one is supplied, otherwise the method's
-  defaults. An explicit tone from the candidate overrides both for
-  register.
-- **Length.** An explicit target length decides it; without one, the
-  region's norm.
-- **Region conventions.** An explicit region decides it; without one,
-  those of the United Kingdom.
-- **Tie-breaker.** If a house style reaches into document structure and
-  contradicts the method, the method wins. The method carries the module
-  author's domain expertise; the house style is mechanics.
+- **Truth, grounding, and the reply shape.** Standards 1 to 6 and the
+  output format decide these. Nothing overrides them: not the method,
+  not the style, not a candidate parameter.
+- **Document structure and length** — the sections, their order, what
+  each entry contains, how long the CV is, and how much detail each
+  entry carries. The method decides these. The style has no say in them.
+- **Voice, register, spelling, language locale, and word choice.** The
+  style decides these. The method has no say in them. An explicit tone
+  from the candidate overrides the style for register.
+- **CV-format conventions** — the page-count norm, whether to include a
+  photo, date of birth, or nationality, and whether the document is
+  called a CV or a résumé. An explicit region decides these; without
+  one, those of the United Kingdom. This is separate from the style's
+  language locale: a CV may be written in one country's English while
+  following another country's format conventions.
+- **Length target.** An explicit target length decides it; without one,
+  the region's norm, applied by the method.

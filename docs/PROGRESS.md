@@ -4,6 +4,45 @@ Dated entries, newest first. What's done, what's deferred, decisions
 made. Read this before assuming anything about the module's current
 state.
 
+## 2026-08-30 — Style as its own layer, disjoint from the method (v0.3.0)
+
+- The precedence between `house_style` and `expert_guidance` needed a
+  tie-breaker because both could speak to voice. Fixed by making their
+  domains disjoint and giving voice its own layer:
+  - **`style.md`** — new, fifth layer. Voice, register, spelling and
+    language locale, date format in prose, words to avoid. Cross-cutting
+    (the same rules would suit a cover letter). Ships a **light bundled
+    default** (British English, plain active voice, a short avoid-list);
+    `Input.house_style` replaces it wholesale. This reverses the earlier
+    "no default house style" stance — deliberately, so the module has a
+    sane voice standalone; an orchestrator's `house_style` overrides it.
+  - **`expert_guidance.md`** — now owns structure *and* length /
+    verbosity, and explicitly not voice. "How much to rewrite" replaces
+    the old "Voice" section; the Length section notes a CV stays concise
+    whatever register the style file uses. Role-heading date-range format
+    (`March 2021 – present`) moved here (structural formatting).
+  - **`standards.md`** precedence rewritten: five disjoint domains, no
+    tie-breaker. Style owns voice/language; method owns structure/length;
+    `region` owns CV-format conventions (page norm, photo/DOB), which is
+    kept separate from the style's language locale.
+- `_core.py`: `DEFAULT_STYLE` loaded from `style.md`; `_render_prompt`
+  always emits a `## Style` section (supplied `house_style` or the
+  default), ahead of `## Method`. Both are per-call, not in the cached
+  system block.
+- `_contract.py` / `docs/CONTRACT.md`: `house_style` and
+  `expert_guidance` docstrings rewritten to the disjoint split; dropped
+  "house_style outranks the method". New **Precedence** subsection in
+  `CONTRACT.md`. `docs/PROMPT-LAYERS.md`, `CLAUDE.md`, `README.md`
+  updated to five layers; `test_prompt_layers.py` covers `style.md`;
+  `test_run.py` house-style test rewritten (default vs wholesale
+  replace).
+- **Minor bump.** Inputs and outputs are unchanged in name, type, and
+  shape. Behaviour changes only when `house_style` is absent (the module
+  now applies a bundled style instead of using its own judgement), and
+  the documented precedence between `house_style` and `expert_guidance`
+  changed. 0.2.0 → 0.3.0. `uv run pytest` (38) and `uv run lint-imports`
+  pass. Mirror in `cover-letter-writer`.
+
 ## 2026-08-30 — Split the prompt into four layers (v0.2.0)
 
 - The single `system.md` mixed identity, rules, and format, and

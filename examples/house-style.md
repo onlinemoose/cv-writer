@@ -1,6 +1,9 @@
 <!-- Test copy. In the real system this file lives in the orchestration
 layer and is passed to every text-generating module as house_style. The
-copy here exists only so this module runs end to end on its own. -->
+copy here exists only so this module runs end to end on its own. It is a
+fuller example than the module's bundled default style
+(cv_writer/prompts/style.md), which house_style replaces wholesale when
+supplied. -->
 
 # House Style
 

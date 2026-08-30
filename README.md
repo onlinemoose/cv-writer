@@ -64,10 +64,11 @@ Optional (full spec in `docs/CONTRACT.md`):
   UK), `emphasis` (points, each optionally anchored to a span of the
   posting), `previous_draft` + `previous_feedback` (for a revision pass),
   `job_title`, `job_company`.
-- The operator's: `house_style` (cross-cutting spelling, punctuation and
-  phrasing rules, the same file you would give every text tool),
-  `expert_guidance` (replaces the built-in method for how to build the
-  CV).
+- The operator's: `house_style` (the **style** — voice, register,
+  spelling and language locale, words to avoid; cross-cutting, the same
+  file you would give every text tool; replaces the bundled default
+  style), `expert_guidance` (the **method** — how the CV is built and how
+  long it is; replaces the bundled default method).
 
 ## Run it
 
@@ -142,7 +143,8 @@ cv_writer/        the module: run(), Input, Output, Emphasis, Feedback, Cost
     system.md           who the model is: role, expertise, mindset
     standards.md        the output invariants + the precedence map
     output_contract.md  the exact reply shape (carries {{SENTINEL}})
-    expert_guidance.md  the method — a caller can replace it wholesale
+    style.md            how the prose reads — a caller can replace it (house_style)
+    expert_guidance.md  how the CV is built — a caller can replace it (expert_guidance)
 cli.py            run it from a terminal (flags or interactive)
 docs/
   CONTRACT.md      the input/output spec
@@ -156,7 +158,7 @@ tests/            test_run.py (contract), test_cli.py (parser),
 
 ## Tuning the prompts
 
-The prompt text is four Markdown files in `cv_writer/prompts/`, split by
+The prompt text is five Markdown files in `cv_writer/prompts/`, split by
 **what kind of statement** each holds. `docs/PROMPT-LAYERS.md` is the full
 spec; in short:
 
@@ -168,23 +170,30 @@ spec; in short:
 - `output_contract.md` — the exact reply shape. Keep the `{{SENTINEL}}`
   marker exactly once; `_core.py` fills it with the value `_parse` splits
   on.
-- `expert_guidance.md` — the method (section order, bullet craft,
-  situational calls). `Input.expert_guidance` replaces it wholesale at
-  call time, so edits here only change the default.
+- `style.md` — how the prose reads: voice, register, spelling and
+  language locale, words to avoid. Cross-cutting (the same rules would
+  suit a cover letter). `Input.house_style` replaces it wholesale.
+- `expert_guidance.md` — how the CV is built: section order, evidence
+  selection, bullet craft, gap handling, length. `Input.expert_guidance`
+  replaces it wholesale.
 
-`_core.py` builds the cached system block from the first three;
-`expert_guidance.md` is sent per call.
+`_core.py` builds the cached system block from the first three; `style.md`
+and `expert_guidance.md` are sent per call. The two are disjoint — style
+never sets structure or length, the method never sets voice or spelling —
+so there is no precedence question between them.
 
 **When you edit any of these, run the change protocol in
 `docs/PROMPT-LAYERS.md`** — it checks each new line sits in the right
 layer, nothing is duplicated, and precedence still resolves.
 `tests/test_prompt_layers.py` covers the mechanics (`uv run pytest`).
 Prompt-only change, contract unchanged → release as a **patch**; a change
-to `standards.md` or `output_contract.md` that alters what a caller can
-rely on is a **contract change** (update `docs/CONTRACT.md`, bump major).
+to `standards.md`, `output_contract.md`, or which layer owns a domain
+that alters what a caller can rely on is a **contract change** (update
+`docs/CONTRACT.md`, bump minor pre-1.0).
 
-There is no default house style: that is cross-cutting config the
-orchestrator owns and passes in as `house_style` (see `docs/CONTRACT.md`).
+`style.md` ships a light default (British English, plain active voice, a
+short avoid-list). It is replaced wholesale the moment an orchestrator
+passes its own `house_style`.
 
 ## Releasing a change
 

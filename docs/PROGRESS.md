@@ -4,6 +4,18 @@ Dated entries, newest first. What's done, what's deferred, decisions
 made. Read this before assuming anything about the module's current
 state.
 
+## 2026-08-31 — Optional on_progress callback for a live word count (v0.5.0)
+
+`run(data, *, on_progress=None)` — a keyword-only sink the caller can
+pass to watch the CV being written. When set, `_generate` consumes the
+already-streamed reply through a new `_drain_with_progress` that pings
+the callback ~2×/sec with a `Progress(characters, words, seconds)` of the
+text so far. New exported type: `Progress`. No change to `Input`, the
+Output, or the non-streaming call path (`on_progress=None` behaves
+exactly as v0.4.0). A callback that raises is logged and swallowed —
+generation is never interrupted by the sink. Minor bump: new optional
+side channel, existing callers untouched. 41 tests pass.
+
 ## 2026-08-31 — Stream the model call; cap and guard the output (v0.4.0)
 
 The dashboard's CV Writer page timed out on the deploy host for long

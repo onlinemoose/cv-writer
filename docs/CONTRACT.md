@@ -177,6 +177,14 @@ model, effort, estimated USD, and the token breakdown. It installs no
 handlers; the host decides where, or whether, that surfaces. The same
 figures are returned on `Output.cost`.
 
+`run()` also takes an optional keyword-only `on_progress` callback. When
+given, it is called with a `Progress` value (`characters`, `words`,
+`seconds` of text streamed so far) about twice a second while the model
+writes the CV — for a caller showing a live word count during the wait.
+It is a side channel, not part of `Input`: it never changes the Output,
+it is not called during the model's thinking phase (before any text),
+and an exception it raises is logged and swallowed.
+
 ## Open questions
 
 - Structured input. `cv` and `job_posting` are plain text today. A

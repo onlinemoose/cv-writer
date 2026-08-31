@@ -37,9 +37,10 @@ def stub_llm(monkeypatch):
     """Capture the prompt sent to the model; return a canned two-part reply."""
     seen = {}
 
-    def fake_generate(system: str, prompt: str) -> tuple[str, Cost]:
+    def fake_generate(system: str, prompt: str, on_progress=None) -> tuple[str, Cost]:
         seen["system"] = system
         seen["prompt"] = prompt
+        seen["on_progress"] = on_progress
         return REPLY, STUB_COST
 
     monkeypatch.setattr(_core, "_generate", fake_generate)
@@ -273,7 +274,9 @@ def test_optional_sections_absent_when_not_supplied(stub_llm):
 
 def test_reply_without_sentinel_becomes_the_cv(stub_llm, monkeypatch):
     monkeypatch.setattr(
-        _core, "_generate", lambda system, prompt: ("Just a CV, no marker.", STUB_COST)
+        _core,
+        "_generate",
+        lambda system, prompt, on_progress=None: ("Just a CV, no marker.", STUB_COST),
     )
     result = run(Input(cv=CV, job_posting=JOB))
     assert result.tailored_cv == "Just a CV, no marker."
@@ -323,3 +326,51 @@ def test_empty_cv_is_rejected(stub_llm):
 def test_empty_job_posting_is_rejected(stub_llm):
     with pytest.raises(ValueError):
         run(Input(cv=CV, job_posting="   "))
+
+
+# --- progress callback ---------------------------------------------------
+
+def test_on_progress_is_optional_and_passed_through(stub_llm):
+    """run() works without on_progress, and threads it to _generate when given."""
+    run(Input(cv=CV, job_posting=JOB))
+    assert stub_llm["on_progress"] is None
+
+    def sink(_p):
+        pass
+
+    run(Input(cv=CV, job_posting=JOB), on_progress=sink)
+    assert stub_llm["on_progress"] is sink
+
+
+class _FakeStream:
+    def __init__(self, chunks):
+        self.text_stream = iter(chunks)
+        self._final = object()
+
+    def get_final_message(self):
+        return self._final
+
+
+def test_drain_with_progress_reports_cumulative_counts():
+    seen = []
+    stream = _FakeStream(["Hello ", "world, ", "this is a CV."])
+    final = _core._drain_with_progress(stream, seen.append)
+
+    assert final is stream._final
+    assert seen, "expected at least the final progress ping"
+    last = seen[-1]
+    assert last.characters == len("Hello world, this is a CV.")
+    assert last.words == 6
+    assert last.seconds >= 0
+    # monotonic, never going backwards
+    assert [p.characters for p in seen] == sorted(p.characters for p in seen)
+
+
+def test_a_raising_progress_callback_does_not_break_generation():
+    def boom(_progress):
+        raise RuntimeError("sink is on fire")
+
+    stream = _FakeStream(["a", "b", "c"])
+    # must not propagate
+    final = _core._drain_with_progress(stream, boom)
+    assert final is stream._final

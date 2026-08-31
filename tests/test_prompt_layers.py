@@ -56,7 +56,7 @@ def test_replaceable_layers_are_not_baked_into_the_cached_system_block():
 def test_default_style_and_method_reach_the_user_prompt_not_the_system_block(monkeypatch):
     seen = {}
 
-    def fake_generate(system, prompt):
+    def fake_generate(system, prompt, on_progress=None):
         seen["system"] = system
         seen["prompt"] = prompt
         return f"CV{_core.SENTINEL}note", _core.Cost(0.0, 0, 0, 0, 0)

@@ -167,6 +167,28 @@ class Cost:
 
 
 @dataclass
+class Progress:
+    """A periodic progress signal while the CV is being written.
+
+    Passed to the optional `on_progress` callback (see run()) roughly
+    twice a second, once the model starts emitting text. The counts are
+    of the text received so far — a live, monotonic measure, not a
+    fraction of some total (there is no meaningful total). During the
+    model's thinking phase, before any text arrives, the callback is not
+    called. Observability only; it has no bearing on the Output.
+    """
+
+    characters: int
+    """Characters of CV text streamed so far."""
+
+    words: int
+    """Whitespace-separated words of CV text streamed so far."""
+
+    seconds: float
+    """Seconds since the model call started, at this update."""
+
+
+@dataclass
 class Output:
     """Everything run() hands back."""
 

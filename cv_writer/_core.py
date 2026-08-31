@@ -8,13 +8,20 @@ everything around it is prompt assembly and parsing the two-part reply.
 from __future__ import annotations
 
 import logging
+import time
+from collections.abc import Callable
 from importlib import resources
 
 import anthropic
 
-from ._contract import Cost, Emphasis, Feedback, Input, Output
+from ._contract import Cost, Emphasis, Feedback, Input, Output, Progress
 
 _log = logging.getLogger("cv_writer")
+
+ProgressFn = Callable[[Progress], None]
+
+# How often, at most, to ping an on_progress callback while text streams.
+_PROGRESS_EVERY_S = 0.5
 
 MODEL = "claude-sonnet-5"
 # Room for a long regional CV (a German Lebenslauf runs long), the
@@ -70,9 +77,9 @@ DEFAULT_STYLE = (_PROMPTS / "style.md").read_text(encoding="utf-8")
 DEFAULT_EXPERT_GUIDANCE = (_PROMPTS / "expert_guidance.md").read_text(encoding="utf-8")
 
 
-def _build(data: Input) -> Output:
+def _build(data: Input, on_progress: ProgressFn | None = None) -> Output:
     _validate(data)
-    raw, cost = _generate(SYSTEM_PROMPT, _render_prompt(data))
+    raw, cost = _generate(SYSTEM_PROMPT, _render_prompt(data), on_progress)
     return _parse(raw, cost)
 
 
@@ -171,7 +178,9 @@ def _render_feedback(items: list[Feedback]) -> str:
     return "\n".join(lines)
 
 
-def _generate(system: str, prompt: str) -> tuple[str, Cost]:
+def _generate(
+    system: str, prompt: str, on_progress: ProgressFn | None = None
+) -> tuple[str, Cost]:
     """The one outbound call: the LLM this module uses internally.
 
     Returns the raw reply text and what the call cost. The cost is also
@@ -196,7 +205,10 @@ def _generate(system: str, prompt: str) -> tuple[str, Cost]:
         system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
         messages=[{"role": "user", "content": prompt}],
     ) as stream:
-        message = stream.get_final_message()
+        if on_progress is None:
+            message = stream.get_final_message()
+        else:
+            message = _drain_with_progress(stream, on_progress)
     if message.stop_reason == "max_tokens":
         # The reply was cut off mid-document; _parse would silently yield a
         # half CV and an empty note. Fail loudly so the caller can retry
@@ -219,6 +231,37 @@ def _generate(system: str, prompt: str) -> tuple[str, Cost]:
         cost.cache_write_input_tokens,
     )
     return text, cost
+
+
+def _drain_with_progress(stream: anthropic.MessageStream, on_progress: ProgressFn):
+    """Consume the text stream, pinging `on_progress` at most every
+    `_PROGRESS_EVERY_S`, then return the finalised message. Only the
+    ping cadence is added; the message the SDK assembles is unchanged."""
+    parts: list[str] = []
+    started = time.monotonic()
+    last = 0.0
+    for chunk in stream.text_stream:
+        parts.append(chunk)
+        now = time.monotonic()
+        if now - last >= _PROGRESS_EVERY_S:
+            last = now
+            _ping(on_progress, "".join(parts), now - started)
+    _ping(on_progress, "".join(parts), time.monotonic() - started)
+    return stream.get_final_message()
+
+
+def _ping(on_progress: ProgressFn, text: str, seconds: float) -> None:
+    try:
+        on_progress(
+            Progress(
+                characters=len(text),
+                words=len(text.split()),
+                seconds=round(seconds, 1),
+            )
+        )
+    except Exception:
+        # A caller's progress sink must never break generation.
+        _log.warning("on_progress raised; continuing without it", exc_info=True)
 
 
 def _price(usage: anthropic.types.Usage) -> Cost:

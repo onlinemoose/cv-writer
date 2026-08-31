@@ -1,6 +1,6 @@
 [project]
 name = "cv-writer"
-version = "0.3.0"
+version = "0.4.0"
 description = "Tailor a candidate's CV to a specific job posting."
 requires-python = ">=3.12"
 dependencies = [

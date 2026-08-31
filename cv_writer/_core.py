@@ -17,7 +17,11 @@ from ._contract import Cost, Emphasis, Feedback, Input, Output
 _log = logging.getLogger("cv_writer")
 
 MODEL = "claude-sonnet-5"
-MAX_TOKENS = 16_000
+# Room for a long regional CV (a German Lebenslauf runs long), the
+# tailoring note, and medium-effort thinking — without the 16k tail that
+# let a slow run overrun a caller's request timeout. The reply is
+# streamed (see _generate), so this is a size bound, not a latency guard.
+MAX_TOKENS = 8_000
 
 # Tailoring a CV from supplied material is a drafting task, not a hard
 # reasoning one. "medium" effort keeps the model's thinking budget
@@ -174,8 +178,15 @@ def _generate(system: str, prompt: str) -> tuple[str, Cost]:
     logged, at INFO on the `cv_writer` logger, so it can be seen without
     threading the Output all the way back.
     """
-    client = anthropic.Anthropic()
-    message = client.messages.create(
+    # A full-length CV is minutes of generation. Stream the reply so a
+    # large max_tokens can't trip the HTTP read timeout, and bound the
+    # wait: a stalled request should fail in minutes, not ride the SDK's
+    # 10-minute default. One retry rides out a transient 429 / 5xx.
+    client = anthropic.Anthropic(
+        timeout=anthropic.Timeout(300.0, connect=10.0),
+        max_retries=1,
+    )
+    with client.messages.stream(
         model=MODEL,
         max_tokens=MAX_TOKENS,
         output_config={"effort": EFFORT},
@@ -184,7 +195,16 @@ def _generate(system: str, prompt: str) -> tuple[str, Cost]:
         # prefix at a fraction of the input price.
         system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
         messages=[{"role": "user", "content": prompt}],
-    )
+    ) as stream:
+        message = stream.get_final_message()
+    if message.stop_reason == "max_tokens":
+        # The reply was cut off mid-document; _parse would silently yield a
+        # half CV and an empty note. Fail loudly so the caller can retry
+        # with a shorter target length.
+        raise RuntimeError(
+            "the model hit the length cap before finishing — try a shorter "
+            "target length"
+        )
     text = "".join(block.text for block in message.content if block.type == "text")
     cost = _price(message.usage)
     _log.info(

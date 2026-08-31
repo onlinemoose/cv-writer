@@ -4,6 +4,30 @@ Dated entries, newest first. What's done, what's deferred, decisions
 made. Read this before assuming anything about the module's current
 state.
 
+## 2026-08-31 — Stream the model call; cap and guard the output (v0.4.0)
+
+The dashboard's CV Writer page timed out on the deploy host for long
+(e.g. German) roles: one non-streaming `messages.create` at
+`max_tokens=16_000` can run for minutes, past a hosting proxy's
+time-to-first-byte limit. Changes in `_generate`:
+
+- **Stream the reply** — `client.messages.stream(...).get_final_message()`
+  instead of `messages.create(...)`. Same result, but a large
+  `max_tokens` can't trip the HTTP read timeout. `run()`'s signature is
+  unchanged; there is no streaming variant on the contract yet.
+- **`MAX_TOKENS` 16_000 → 8_000** — still room for a long regional CV, its
+  tailoring note, and medium-effort thinking, without the tail that let a
+  slow run overrun the caller.
+- **Explicit client limits** — `timeout=Timeout(300.0, connect=10.0)`,
+  `max_retries=1`. A stalled request now fails in minutes rather than
+  riding the SDK's 10-minute default; one retry still covers a transient
+  429/5xx.
+- **Truncation guard** — if `stop_reason == "max_tokens"`, raise instead
+  of letting `_parse` return a half CV with an empty note.
+
+Tests still stub `_generate`, so the new call path has no unit coverage —
+it's a straight SDK swap plus a one-line guard. 38 tests pass.
+
 ## 2026-08-30 — Style as its own layer, disjoint from the method (v0.3.0)
 
 - The precedence between `house_style` and `expert_guidance` needed a

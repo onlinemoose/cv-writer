@@ -4,6 +4,15 @@ Dated entries, newest first. What's done, what's deferred, decisions
 made. Read this before assuming anything about the module's current
 state.
 
+## 2026-09-02 — Reconcile the package version with the tag (v0.6.2)
+
+Housekeeping only, no code change. `v0.6.0` (the real change below)
+shipped with `pyproject`'s `version` still at `0.5.0`; `v0.6.1` was meant
+to catch it up but set it to `0.6.0`, still a release behind its own tag.
+This sets `version = "0.6.2"` so the string and the git tag finally
+agree, as every release before `v0.6.0` kept them. Consumers pin by git
+ref, so nothing functional changed at any of these tags. 41 tests pass.
+
 ## 2026-09-02 — Raise the output ceiling 8k → 16k (v0.6.0)
 
 Long-form CVs (a full regional Lebenslauf, a multi-page academic CV) were

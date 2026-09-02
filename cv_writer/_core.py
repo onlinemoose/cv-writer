@@ -25,10 +25,13 @@ _PROGRESS_EVERY_S = 0.5
 
 MODEL = "claude-sonnet-5"
 # Room for a long regional CV (a German Lebenslauf runs long), the
-# tailoring note, and medium-effort thinking — without the 16k tail that
-# let a slow run overrun a caller's request timeout. The reply is
-# streamed (see _generate), so this is a size bound, not a latency guard.
-MAX_TOKENS = 8_000
+# tailoring note, and medium-effort thinking (thinking tokens count
+# against this ceiling too). The reply is streamed (see _generate), so a
+# generous ceiling can't trip an HTTP read timeout — this is a size
+# bound, not a latency guard, and only ever a ceiling: headroom the model
+# doesn't use costs nothing. 8k cut real long-form CVs off mid-document;
+# 16k clears them.
+MAX_TOKENS = 16_000
 
 # Tailoring a CV from supplied material is a drafting task, not a hard
 # reasoning one. "medium" effort keeps the model's thinking budget
@@ -212,10 +215,11 @@ def _generate(
     if message.stop_reason == "max_tokens":
         # The reply was cut off mid-document; _parse would silently yield a
         # half CV and an empty note. Fail loudly so the caller can retry
-        # with a shorter target length.
+        # with less to write.
         raise RuntimeError(
-            "the model hit the length cap before finishing — try a shorter "
-            "target length"
+            f"the model hit the {MAX_TOKENS}-token length cap before "
+            "finishing — set a shorter target_length, or trim the CV / "
+            "background documents"
         )
     text = "".join(block.text for block in message.content if block.type == "text")
     cost = _price(message.usage)

@@ -4,6 +4,29 @@ Dated entries, newest first. What's done, what's deferred, decisions
 made. Read this before assuming anything about the module's current
 state.
 
+## 2026-09-02 — Raise the output ceiling 8k → 16k (v0.6.0)
+
+Long-form CVs (a full regional Lebenslauf, a multi-page academic CV) were
+hitting `stop_reason == "max_tokens"` and tripping the truncation guard —
+`run()` raised `RuntimeError` after streaming a partial CV, and the
+caller got nothing.
+
+`MAX_TOKENS` 8_000 → 16_000. The 8k value came in with v0.4.0 as
+belt-and-braces alongside the switch to a streamed call; but the stream
+is what actually removed the request-timeout risk, so the low ceiling was
+redundant caution and it became the binding limit. `max_tokens` is only a
+ceiling — headroom the model doesn't use isn't billed — so this just
+lets a genuinely long CV finish. Medium-effort thinking tokens count
+against the ceiling too, which is part of why 8k was tight.
+
+The truncation guard stays as a genuine last resort (a 16k-token reply
+means the inputs or `target_length` are asking for too much); its message
+now names the cap and points at both levers — `target_length` and
+trimming the CV / background docs.
+
+No contract or API change. Minor bump: tuning + a clearer error. 41 tests
+pass.
+
 ## 2026-08-31 — Optional on_progress callback for a live word count (v0.5.0)
 
 `run(data, *, on_progress=None)` — a keyword-only sink the caller can
